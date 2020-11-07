@@ -1,0 +1,54 @@
+---
+
+- name: install docker config
+  copy:
+    src: 'daemon.json'
+    dest: '/etc/docker/daemon.json'
+    owner: root
+    group: root
+    mode: 0600
+  notify: restart docker
+
+- name: remove swap from fstab
+  mount:
+    name: '{{ item }}'
+    fstype: swap
+    state: absent
+  loop:
+    - swap
+    - none
+
+- name: disable swap
+  command: swapoff -a
+  when: ansible_swaptotal_mb > 0
+
+- name: install dependencies
+  package:
+    name: 
+      - apt-transport-https
+      - gpg
+    state: present
+
+- name: add apt key
+  apt_key:
+    url: 'https://packages.cloud.google.com/apt/doc/apt-key.gpg'
+    state: present
+
+- name: add kubernetes repo to sources.list
+  apt_repository:
+    repo: 'deb [arch=amd64] http://apt.kubernetes.io/ kubernetes-xenial main'
+    state: present
+    filename: kubernetes
+
+- name: install kubeadm
+  package:
+    name:
+      - 'kubeadm={{ k8s_version }}-*'
+      - 'kubectl={{ k8s_version }}-*'
+      - 'kubelet={{ k8s_version }}-*'
+    state: present
+
+- name: disable kubelet service
+  service:
+    name: kubelet
+    enabled: false
