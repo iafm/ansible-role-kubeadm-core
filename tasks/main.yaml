@@ -47,8 +47,3 @@
       - 'kubectl={{ k8s_version }}-*'
       - 'kubelet={{ k8s_version }}-*'
     state: present
-
-- name: disable kubelet service
-  service:
-    name: kubelet
-    enabled: false
