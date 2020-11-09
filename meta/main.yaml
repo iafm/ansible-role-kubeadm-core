@@ -5,7 +5,7 @@ galaxy_info:
   author: iafm
   description: Core kubeadm components and configuration.
   license: MIT
-  
+
   platforms:
     - name: Ubuntu
       versions:
