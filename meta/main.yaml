@@ -2,9 +2,11 @@
 
 galaxy_info:
   role_name: kubeadm_core
-  author: iafm
+  author: yshch
   description: Core kubeadm components and configuration.
   license: MIT
+
+  min_ansible_version: 2.10
 
   platforms:
     - name: Ubuntu
