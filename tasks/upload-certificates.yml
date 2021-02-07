@@ -1,0 +1,21 @@
+---
+
+- name: generate certificate key
+  ansible.builtin.command:
+    cmd: kubeadm alpha certs certificate-key
+  register: _kubeadm_certificate_key
+
+- name: register certificate key
+  ansible.builtin.set_fact:
+    _kubeadm_certificate_key: "{{ _kubeadm_certificate_key.stdout }}"
+  delegate_to: localhost
+  delegate_facts: true
+  when:
+    - _kubeadm_certificate_key
+
+- name: upload certificates
+  ansible.builtin.command:
+    cmd: kubeadm init phase upload-certs
+          --upload-certs
+          --certificate-key "{{ _kubeadm_certificate_key.stdout }}"
+  register: _kubeadm_certificates_uploaded

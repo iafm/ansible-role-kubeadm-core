@@ -1,3 +1,5 @@
 ---
 
-k8s_version: 1.19.5
+kubeadm_version: 1.18.10
+kubeadm_pod_network_cidr: 10.10.0.0/16
+kubeadm_master_address: "{{ hostvars[groups['k8s_local'][0]]['ansible_default_ipv4'].address | default(groups['k8s_local'][0]) }}"

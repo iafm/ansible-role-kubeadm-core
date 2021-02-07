@@ -4,3 +4,18 @@
   ansible.builtin.service:
     name: docker
     state: restarted
+
+- name: generate token
+  ansible.builtin.add_host:
+    name: _KUBEADM
+    generate_token: true
+
+- name: upload certificates
+  ansible.builtin.add_host:
+    name: _KUBEADM
+    upload_certificates: true
+
+- name: register cluster state
+  ansible.builtin.add_host:
+    name: _KUBEADM
+    cluster_initialized: true

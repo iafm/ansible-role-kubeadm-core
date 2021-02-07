@@ -1,0 +1,6 @@
+---
+
+- name: reset node
+  ansible.builtin.command:
+    cmd: kubeadm reset -f
+  failed_when: false

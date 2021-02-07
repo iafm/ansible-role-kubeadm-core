@@ -1,1 +1,1 @@
-# ansible-role-kubeadm-core
+# ansible-role-kubeadm

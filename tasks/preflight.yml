@@ -1,0 +1,38 @@
+---
+
+- name: check if node has ca certificate
+  ansible.builtin.stat:
+    path: /etc/kubernetes/pki/ca.crt
+  register: _kubeadm_ca_certificate
+
+- name: register if node has already joined the cluster
+  ansible.builtin.set_fact:
+    _kubeadm_ready: "{{ _kubeadm_ca_certificate.stat.exists }}"
+
+- name: register if we need to generate token and upload certificates
+  set_fact:
+    _kubeadm_generate_token: true
+    _kubeadm_upload_certificates: true
+  delegate_to: localhost
+  delegate_facts: true
+  when:
+    - not _kubeadm_ca_certificate.stat.exists
+
+- name: register initialized masters
+  set_fact:
+    _kubeadm_ready_masters: "{{ (_kubeadm_ready_masters | default([])) + [ansible_hostname] }}"
+    _kubeadm_cluster_initialized: true
+  delegate_to: localhost
+  delegate_facts: true
+  when:
+    - _kubeadm_ca_certificate.stat.exists
+    - kubeadm_node_role == "master"
+
+- name: register initialized workers
+  set_fact:
+    _kubeadm_ready_workers: "{{ (_kubeadm_ready_workers | default([])) + [ansible_hostname] }}"
+  delegate_to: locahost
+  delegate_facts: true
+  when:
+    - _kubeadm_ca_certificate.stat.exists
+    - kubeadm_node_role == "worker"

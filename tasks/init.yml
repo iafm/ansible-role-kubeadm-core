@@ -1,0 +1,54 @@
+---
+
+- name: enable and start kubelet service
+  ansible.builtin.service:
+    name: kubelet
+    enabled: true
+    state: started
+
+- name: init master
+  ansible.builtin.command:
+    cmd: kubeadm init
+          --ignore-preflight-errors=NumCPU
+          --control-plane-endpoint "{{ kubeadm_master_address }}:6443"
+          --kubernetes-version "{{ kubeadm_version }}"
+          --pod-network-cidr "{{ kubeadm_pod_network_cidr }}"
+          --skip-certificate-key-print
+          --skip-token-print
+          --token-ttl 30s
+  register: _kubeadm_cluster_initialized
+
+- name: create kubeconfig directory
+  ansible.builtin.file:
+    path: "/home/{{ ansible_user }}/.kube"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: 0700
+
+- name: copy kubeconfig
+  ansible.builtin.copy:
+    src: /etc/kubernetes/admin.conf
+    dest: "/home/{{ ansible_user }}/.kube/config"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: 0600
+    remote_src: true
+
+- name: fetch kubeconfig
+  ansible.builtin.fetch:
+    src: /etc/kubernetes/admin.conf
+    dest: ~/.kube/config-local
+    flat: true
+
+- name: register the node as a cluster member
+  ansible.builtin.set_fact:
+    _kubeadm_ready: _kubeadm_cluster_initialized.changed
+
+- name: register the node as an active master
+  set_fact:
+    _kubeadm_ready_masters: "{{ (_kubeadm_ready_masters | default([])) + [ansible_hostname] }}"
+    _kubeadm_cluster_initialized: true
+  delegate_to: localhost
+  delegate_facts: true
+  when: _kubeadm_cluster_initialized.changed

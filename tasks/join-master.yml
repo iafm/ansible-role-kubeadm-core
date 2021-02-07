@@ -1,0 +1,17 @@
+---
+
+- name: enable and start kubelet service
+  ansible.builtin.service:
+    name: kubelet
+    enabled: true
+    state: started
+
+- name: join the cluster as master
+  ansible.builtin.command:
+    cmd: kubeadm join
+          --ignore-preflight-errors=NumCPU
+          --control-plane
+          --token "{{ hostvars['localhost']['_kubeadm_token'] }}"
+          --certificate-key "{{ hostvars['localhost']['_kubeadm_certificate_key'] }}"
+          --discovery-token-unsafe-skip-ca-verification
+          "{{ kubeadm_master_address }}:6443"

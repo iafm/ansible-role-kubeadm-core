@@ -1,0 +1,14 @@
+---
+
+- name: generate token
+  ansible.builtin.command:
+    cmd: kubeadm token create --ttl 1h
+  register: _kubeadm_token
+
+- name: register token
+  ansible.builtin.set_fact:
+    _kubeadm_token: "{{ _kubeadm_token.stdout }}"
+  delegate_to: localhost
+  delegate_facts: true
+  when:
+    - _kubeadm_token

@@ -1,50 +1,35 @@
 ---
 
-- name: install docker config
-  ansible.builtin.copy:
-    src: daemon.json
-    dest: /etc/docker/daemon.json
-    owner: root
-    group: root
-    mode: 0600
-  notify: restart docker
+- include: reset.yml
+  when:
+    - kubeadm_node_reset | default(false)
 
-- name: remove swap from fstab
-  ansible.posix.mount:
-    name: "{{ item }}"
-    fstype: swap
-    state: absent
-  loop:
-    - swap
-    - none
+- include: install.yml
 
-- name: disable swap
-  ansible.builtin.command:
-    cmd: swapoff -a
-  when: ansible_swaptotal_mb > 0
+- include: preflight.yml
 
-- name: install dependencies
-  ansible.builtin.package:
-    name:
-      - apt-transport-https
-      - gpg
-    state: present
+- include: init.yml
+  when:
+    - not hostvars['localhost']['_kubeadm_cluster_initialized'] | default(false)
+    - kubeadm_node_role == "master"
+    - ansible_play_hosts[0] == ansible_hostname
 
-- name: add apt key
-  ansible.builtin.apt_key:
-    url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
-    state: present
+- include: generate-token.yml
+  when:
+    - hostvars['localhost']['_kubeadm_generate_token'] | default(false)
+    - hostvars['localhost']['_kubeadm_ready_masters'][0] == ansible_hostname
 
-- name: add kubernetes repo to sources.list
-  ansible.builtin.apt_repository:
-    repo: deb [arch=amd64] http://apt.kubernetes.io/ kubernetes-xenial main
-    state: present
-    filename: kubernetes
+- include: upload-certificates.yml
+  when:
+    - hostvars['localhost']['_kubeadm_upload_certificates'] | default(false)
+    - hostvars['localhost']['_kubeadm_ready_masters'][0] == ansible_hostname
 
-- name: install kubeadm
-  ansible.builtin.package:
-    name:
-      - kubeadm={{ k8s_version }}-*
-      - kubectl={{ k8s_version }}-*
-      - kubelet={{ k8s_version }}-*
-    state: present
+- include: join-master.yml
+  when:
+    - kubeadm_node_role == "master"
+    - not _kubeadm_ready
+
+- include: join-worker.yml
+  when:
+    - kubeadm_node_role == "worker"
+    - not _kubeadm_ready

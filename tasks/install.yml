@@ -1,0 +1,55 @@
+---
+
+- name: install docker config
+  ansible.builtin.copy:
+    src: daemon.json
+    dest: /etc/docker/daemon.json
+    owner: root
+    group: root
+    mode: 0600
+  notify: restart docker
+
+- name: restart docker now
+  ansible.builtin.meta: flush_handlers
+
+- name: remove swap from fstab
+  ansible.posix.mount:
+    name: "{{ item }}"
+    fstype: swap
+    state: absent
+  loop:
+    - swap
+    - none
+
+- name: disable swap
+  ansible.builtin.command:
+    cmd: swapoff -a
+  when: ansible_swaptotal_mb > 0
+
+- name: install dependencies
+  ansible.builtin.package:
+    name:
+      - apt-transport-https
+      - gpg
+    state: present
+
+- name: add apt repository key
+  ansible.builtin.apt_key:
+    url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+    state: present
+
+- name: add apt repository to sources.list
+  ansible.builtin.apt_repository:
+    repo: "deb [arch=amd64] http://apt.kubernetes.io/ kubernetes-xenial main"
+    state: present
+    filename: kubernetes
+
+- name: install packages
+  ansible.builtin.package:
+    name:
+      - kubeadm={{ kubeadm_version }}-*
+      - kubectl={{ kubeadm_version }}-*
+      - kubelet={{ kubeadm_version }}-*
+    state: present
+    update_cache: true
+    cache_valid_time: 86400
